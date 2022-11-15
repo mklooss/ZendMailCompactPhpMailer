@@ -31,6 +31,7 @@ class PHPMailerZendCompact {
 
     public function addTo($email, $name = '')
     {
+        $name = $this->removeUtf8Base64($name);
         $this->mail->addAddress($email, $name);
         return $this;
     }
@@ -49,7 +50,8 @@ class PHPMailerZendCompact {
 
     public function setReplyTo($email, $name = '')
     {
-        $this->mail->addReplyTo($address, $name);
+        $name = $this->removeUtf8Base64($name);
+        $this->mail->addReplyTo($email, $name);
         return $this;
     }
 
@@ -67,18 +69,14 @@ class PHPMailerZendCompact {
 
     public function setSubject($value)
     {
-        if (strstr($value, '=?utf-8?B?'))
-        {
-            $value = mb_substr($value, strlen('=?utf-8?B?'), NULL, 'UTF-8');
-            $value = mb_substr($value, 0, -1 * strlen('?='), 'UTF-8');
-            $value = base64_decode($value);
-        }
+        $value = $this->removeUtf8Base64($value);
         $this->mail->Subject = trim($value);
         return $this;
     }
 
     public function setFrom($email, $name = '')
     {
+        $name = $this->removeUtf8Base64($name);
         $this->mail->setFrom($email, $name);
         return $this;
     }
@@ -107,5 +105,17 @@ class PHPMailerZendCompact {
         $this->mail->addAttachment($path, $filename, $encoding, $mimeType, $disposition);
         $this->files[] = $path;
         return $this;
+    }
+
+    protected function removeUtf8Base64($value)
+    {
+        $value = trim($value);
+        if (strstr($value, '=?utf-8?B?'))
+        {
+            $value = mb_substr($value, strlen('=?utf-8?B?'), NULL, 'UTF-8');
+            $value = mb_substr($value, 0, -1 * strlen('?='), 'UTF-8');
+            $value = base64_decode($value);
+        }
+        return $value;
     }
 }

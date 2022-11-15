@@ -13,7 +13,7 @@ class PHPMailerZendCompact {
         require_once 'PHPMailer/src/Exception.php';
         require_once 'PHPMailer/src/PHPMailer.php';
         $this->mail = new \PHPMailer\PHPMailer\PHPMailer;
-        //$this->mail->isSendmail();
+        $this->mail->isSendmail();
         $this->mail->CharSet = 'UTF-8';
         $this->mail->Encoding = 'base64';
         $this->mail->setLanguage('de');
@@ -43,7 +43,7 @@ class PHPMailerZendCompact {
 
     public function setReturnPath($email)
     {
-        //$this->mail->Sender = $email;
+        $this->mail->Sender = $email;
         return $this;
     }
 

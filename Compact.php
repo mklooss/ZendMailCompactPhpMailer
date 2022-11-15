@@ -8,6 +8,7 @@ class PHPMailerZendCompact {
     protected $mail = NULL;
 
     protected $files = array();
+    protected $is_return_path_set = false;
 
     public function __construct() {
         require_once 'PHPMailer/src/Exception.php';
@@ -19,16 +20,33 @@ class PHPMailerZendCompact {
         $this->mail->setLanguage('de');
     }
 
+    /**
+     * 
+     * @param string $value
+     * @return $this
+     */
     public function setType($value) {
         return $this;
     }
 
+    /**
+     * 
+     * @param string $name
+     * @param string $value
+     * @return $this
+     */
     public function addHeader($name, $value = null)
     {
         $this->mail->addCustomHeader($name, $value);
         return $this;
     }
 
+    /**
+     * 
+     * @param string $email
+     * @param string $name
+     * @return $this
+     */
     public function addTo($email, $name = '')
     {
         $name = $this->removeUtf8Base64($name);
@@ -36,18 +54,36 @@ class PHPMailerZendCompact {
         return $this;
     }
 
-    public function addBcc($bcc)
+    /**
+     * 
+     * @param string $bcc
+     * @param string $name
+     * @return $this
+     */
+    public function addBcc($bcc, $name = '')
     {
         $this->mail->addBCC($bcc);
         return $this;
     }
 
+    /**
+     * 
+     * @param string $email
+     * @return $this
+     */
     public function setReturnPath($email)
     {
+        $this->is_return_path_set = true;
         $this->mail->Sender = $email;
         return $this;
     }
 
+    /**
+     * 
+     * @param string $email
+     * @param string $name
+     * @return $this
+     */
     public function setReplyTo($email, $name = '')
     {
         $name = $this->removeUtf8Base64($name);
@@ -55,18 +91,33 @@ class PHPMailerZendCompact {
         return $this;
     }
 
+    /**
+     * 
+     * @param string $text
+     * @return $this
+     */
     public function setBodyText($text)
     {
         $this->mail->Body = $text;
         return $this;
     }
 
+    /**
+     * 
+     * @param string $message
+     * @return $this
+     */
     public function setBodyHTML($message)
     {
         $this->mail->msgHTML($message);
         return $this;
     }
 
+    /**
+     * 
+     * @param string $value
+     * @return $this
+     */
     public function setSubject($value)
     {
         $value = $this->removeUtf8Base64($value);
@@ -74,6 +125,12 @@ class PHPMailerZendCompact {
         return $this;
     }
 
+    /**
+     * 
+     * @param string $email
+     * @param string $name
+     * @return $this
+     */
     public function setFrom($email, $name = '')
     {
         $name = $this->removeUtf8Base64($name);
@@ -81,8 +138,19 @@ class PHPMailerZendCompact {
         return $this;
     }
 
+    /**
+     * 
+     * @param Zend_Mail_Transport_Abstract $transport
+     * @return $this
+     * @throws Exception
+     */
     public function send($transport = NULL)
     {
+        $returnPathEmail = $this->getReturnPathFromDefaultTransport($transport);
+        if ($returnPathEmail !== null)
+        {
+            $this->setReturnPath($returnPathEmail);
+        }
         if (!$this->mail->send())
         {
             throw new Exception('Mailer Error: ' . $this->mail->ErrorInfo);
@@ -94,6 +162,15 @@ class PHPMailerZendCompact {
         return $this;
     }
 
+    /**
+     * 
+     * @param string $body
+     * @param string $mimeType
+     * @param string $disposition
+     * @param string $encoding
+     * @param string $filename
+     * @return $this
+     */
     public function createAttachment($body,
                                      $mimeType    = \Zend_Mime::TYPE_OCTETSTREAM,
                                      $disposition = \Zend_Mime::DISPOSITION_ATTACHMENT,
@@ -107,6 +184,45 @@ class PHPMailerZendCompact {
         return $this;
     }
 
+    /**
+     * get Return Path by Zend_Mail Transport
+     *  from Sendmail
+     * 
+     * @param \Zend_Mail_Transport_Abstract $transport
+     * @return string|NULL
+     */
+    protected function getReturnPathFromDefaultTransport($transport = NULL)
+    {
+        $returnPathEmail = NULL;
+        if (!$this->is_return_path_set)
+        {
+            if (is_null($transport))
+            {
+                $transport = \Zend_Mail::getDefaultTransport();
+            }
+            if (!is_null($transport) && $transport instanceof \Zend_Mail_Transport_Sendmail)
+            {
+                $parameters = array_filter((array) explode(' ', $transport->parameters));
+                foreach ($parameters as $param)
+                {
+                    if (substr($param, 0, 2) === '-f')
+                    {
+                        $returnPathEmail = mb_substr($param, 2, NULL, 'UTF-8');
+                        break;
+                    }
+                }
+            }
+        }
+        return $returnPathEmail;
+    }
+
+    /**
+     * Convert base64 Value for
+     *   Zend_Mail back to plain
+     * 
+     * @param string $value
+     * @return string
+     */
     protected function removeUtf8Base64($value)
     {
         $value = trim($value);

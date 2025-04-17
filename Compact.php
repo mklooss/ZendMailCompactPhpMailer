@@ -7,12 +7,11 @@ class PHPMailerZendCompact {
      */
     protected $mail = NULL;
 
-    protected $files = array();
     protected $is_return_path_set = false;
 
     public function __construct() {
-        require_once 'PHPMailer/src/Exception.php';
-        require_once 'PHPMailer/src/PHPMailer.php';
+        //require_once 'PHPMailer/src/Exception.php';
+        //require_once 'PHPMailer/src/PHPMailer.php';
         $this->mail = new \PHPMailer\PHPMailer\PHPMailer;
         $this->mail->isSendmail();
         $this->mail->CharSet = 'UTF-8';
@@ -155,10 +154,6 @@ class PHPMailerZendCompact {
         {
             throw new Exception('Mailer Error: ' . $this->mail->ErrorInfo);
         }
-        foreach ($this->files as $file)
-        {
-            @unlink($file);
-        }
         return $this;
     }
 
@@ -177,13 +172,28 @@ class PHPMailerZendCompact {
                                      $encoding    = \Zend_Mime::ENCODING_BASE64,
                                      $filename    = null)
     {
-        $path = tempnam();
-        file_put_contents($path, $body);
-        $this->mail->addAttachment($path, $filename, $encoding, $mimeType, $disposition);
-        $this->files[] = $path;
+        $this->mail->addStringAttachment($body, $filename, $encoding, $mimeType, $disposition);
         return $this;
     }
 
+    /**
+     * 
+     * @return $this
+     */
+    public function setMessageId()
+    {
+        return $this;
+    }
+
+    /**
+     * 
+     * @return string
+     */
+    public function getMessageId()
+    {
+        return $this->mail->MessageID;
+    }
+    
     /**
      * get Return Path by Zend_Mail Transport
      *  from Sendmail
